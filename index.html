@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plano de Leitura</title>
+<meta name="theme-color" content="#f7f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1917" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Plano de Leitura">
+<style>
+:root{--bg:#f7f3ec;--card:#fffdf9;--ink:#2b2622;--muted:#6f655c;--line:#e4dccf;--accent:#8a5a2b;--accent-ink:#fff;--late:#b3261e;--done:#3f7a4a}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1917;--card:#24211e;--ink:#eee8df;--muted:#a39a90;--line:#38332e;--accent:#d7a46a;--accent-ink:#1b1917;--late:#f2948c;--done:#8cc79a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:calc(140px + env(safe-area-inset-bottom))}
+main{max-width:640px;margin:0 auto;padding:0 16px}
+h1,h2{font-family:Georgia,"Times New Roman",serif;font-weight:600;line-height:1.2}
+h1{font-size:1.6rem;margin:20px 0 6px}
+h2{font-size:1.25rem;margin:28px 0 8px}
+h3{font-size:.8rem;color:var(--muted);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+.intro{color:var(--muted);margin:0 0 8px}
+button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.top{position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:2;border-bottom:1px solid var(--line)}
+.top-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-size:.9rem;color:var(--muted)}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.note{border-left:3px solid var(--accent);padding:4px 12px;color:var(--muted);margin:10px 0}
+details.day{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:6px 0}
+details.day summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;min-height:48px}
+summary::-webkit-details-marker{display:none}
+.day input[type=checkbox]{width:24px;height:24px;accent-color:var(--done);flex:none;margin:0}
+.date{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem;flex:none;min-width:3em}
+.lbl{flex:1}
+.meta{font-size:.8rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;margin-left:8px;font-size:.72rem;padding:1px 7px;border-radius:99px;border:1px solid var(--accent);color:var(--accent);vertical-align:2px}
+.tag.late{border-color:var(--late);color:var(--late)}
+.day.done .lbl{text-decoration:line-through;color:var(--muted)}
+.day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.edit{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px}
+.edit label{font-size:.8rem;color:var(--muted);display:grid;gap:4px}
+.edit input{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.edit button{grid-column:1/-1}
+#running{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom));background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;z-index:3}
+#running[hidden]{display:none}
+#running span{font-variant-numeric:tabular-nums;font-weight:600}
+#running button{background:var(--accent-ink);color:var(--accent);border:0}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:3}
+nav button{flex:1;border:0;border-radius:0;background:none;padding:16px;color:var(--muted)}
+nav button[aria-current=page]{color:var(--accent);font-weight:700}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.tile b{display:block;font-family:Georgia,serif;font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
+.tile span{font-size:.8rem;color:var(--muted)}
+.rows .r{display:grid;grid-template-columns:minmax(0,9em) 1fr 4.2em;gap:10px;align-items:center;font-size:.85rem;margin:8px 0}
+.rows .r>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rows .r>span:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.empty{color:var(--muted);font-size:.9rem}
+.backup{display:flex;gap:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+  <section id="tab-plano">
+    <h1>Plano de Leitura e Devocional</h1>
+    <p class="intro">Que este não seja um mapa de obrigações, mas um caminho de descobertas e de muitos momentos de intimidade com Jesus. Se Davi venceu Golias, você vence 3 capítulos! ❤️</p>
+    <div class="top">
+      <div class="top-row"><span id="prog"></span><button id="go-today">Ir para hoje</button></div>
+      <div class="bar"><i id="prog-bar"></i></div>
+    </div>
+    <div id="plan"></div>
+  </section>
+  <section id="tab-metricas" hidden>
+    <h1>Métricas</h1>
+    <div id="stats"></div>
+    <h2>Backup</h2>
+    <p class="intro">Os dados ficam salvos só neste aparelho. Use o backup para guardar ou passar para outro celular.</p>
+    <div class="backup">
+      <button id="export">Baixar backup</button>
+      <button id="import">Restaurar backup</button>
+      <button id="install" class="primary" hidden>Instalar app</button>
+      <input type="file" id="import-file" accept="application/json" hidden>
+    </div>
+  </section>
+</main>
+<div id="running" hidden><span></span><button>■ Parar e concluir</button></div>
+<nav>
+  <button data-tab="plano" aria-current="page">📖 Plano</button>
+  <button data-tab="metricas">📊 Métricas</button>
+</nav>
+<script>
+// Copiado do Notion "PLANO DE LEITURA E DEVOCIONAL". # = fase, ## = subtítulo, > = recado, - = dia
+const PLAN = `
+# 🕊️ Fase 1: Evangelhos e Atos
+- 20/10 — Mateus 1–4
+- 21/10 — Mateus 5–7
+- 22/10 — Mateus 8–10
+- 23/10 — Mateus 11–13
+- 24/10 — Mateus 14–17
+- 25/10 — Mateus 18–21
+- 26/10 — Mateus 22–24
+- 27/10 — Mateus 25–28
+- 28/10 — Marcos 1–3
+- 29/10 — Marcos 4–6
+- 30/10 — Marcos 7–9
+- 31/10 — Marcos 10–12
+- 01/11 — Marcos 13–16
+- 02/11 — Lucas 1–3
+- 03/11 — Lucas 4–6
+- 04/11 — Lucas 7–9
+- 05/11 — Lucas 10–12
+- 06/11 — Lucas 13–15
+- 07/11 — Lucas 16–18
+- 08/11 — Lucas 19–21
+- 09/11 — Lucas 22–24
+- 10/11 — João 1–3
+- 11/11 — João 4–6
+- 12/11 — João 7–9
+- 13/11 — João 10–12
+- 14/11 — João 13–15
+- 15/11 — João 16–18
+- 16/11 — João 19–21
+- 17/11 — Atos 1–3
+- 18/11 — Atos 4–6
+> Jonas tentou fugir… Você só precisa ler. 🐳
+# ✉️ Fase 2: Cartas
+- 23/11 — Atos 7–9
+- 24/11 — Atos 10–12
+- 25/11 — Atos 13–15
+- 26/11 — Atos 16–18
+- 27/11 — Atos 19–21
+- 28/11 — Atos 22–25
+- 29/11 — Atos 26–28
+- 30/11 — Romanos 1–4
+- 01/12 — Romanos 5–8
+- 02/12 — Romanos 9–12
+- 03/12 — Romanos 13–16
+- 04/12 — 1 Coríntios 1–4
+- 05/12 — 1 Coríntios 5–8
+- 06/12 — 1 Coríntios 9–12
+- 07/12 — 1 Coríntios 13–16
+- 08/12 — 2 Coríntios 1–4
+- 09/12 — 2 Coríntios 5–9
+- 10/12 — 2 Coríntios 10–13
+- 11/12 — Gálatas 1–3
+- 12/12 — Gálatas 4–6
+- 13/12 — Efésios 1–3
+- 14/12 — Efésios 4–6
+- 15/12 — Filipenses 1–4
+- 16/12 — Colossenses 1–4
+- 17/12 — 1 Tessalonicenses 1–5
+- 18/12 — 2 Tessalonicenses 1–3 e 1 Timóteo 1–2
+- 19/12 — 1 Timóteo 3–6
+- 20/12 — 2 Timóteo 1–4
+- 21/12 — Tito e Filemom
+- 22/12 — Hebreus 1–4
+- 23/12 — Hebreus 5–8
+# 📜 Fase 3: Livros históricos
+## O início de tudo (Gênesis e Êxodo)
+- 24/12 — Hebreus 9–11
+- 25/12 — Hebreus 12–13 e Tiago 1
+- 26/12 — Tiago 2–5
+- 27/12 — 1 Pedro 1–5
+- 28/12 — 2 Pedro 1–3 e 1 João 1–2
+- 29/12 — 1 João 3–5, 2 e 3 João e Judas
+- 30/12 — Gênesis 1–4
+- 31/12 — Gênesis 5–8
+- 01/01 — Gênesis 9–12
+- 02/01 — Gênesis 13–17
+- 03/01 — Gênesis 18–20
+- 04/01 — Gênesis 21–23
+- 05/01 — Gênesis 24–25
+- 06/01 — Gênesis 26–28
+- 07/01 — Gênesis 29–31
+- 08/01 — Gênesis 32–35
+- 09/01 — Gênesis 36–38
+- 10/01 — Gênesis 39–42
+- 11/01 — Gênesis 43–46
+- 12/01 — Gênesis 47–50
+- 13/01 — Êxodo 1–4
+- 14/01 — Êxodo 5–8
+- 15/01 — Êxodo 9–12
+- 16/01 — Êxodo 13–16
+- 17/01 — Êxodo 17–20
+- 18/01 — Êxodo 21–24
+- 19/01 — Êxodo 25–28
+- 20/01 — Êxodo 29–32
+- 21/01 — Êxodo 33–36
+- 22/01 — Êxodo 37–40
+## Leis e deserto (Levítico e Números)
+- 23/01 — Levítico 1–4
+- 24/01 — Levítico 5–8
+- 25/01 — Levítico 9–12
+- 26/01 — Levítico 13–15
+- 27/01 — Levítico 16–18
+- 28/01 — Levítico 19–22
+- 29/01 — Levítico 23–25
+- 30/01 — Levítico 26–27 e Números 1–2
+- 31/01 — Números 3–5
+- 01/02 — Números 6–8
+- 02/02 — Números 9–12
+- 03/02 — Números 13–15
+- 04/02 — Números 16–18
+- 05/02 — Números 19–21
+- 06/02 — Números 22–24
+- 07/02 — Números 25–27
+- 08/02 — Números 28–30
+- 09/02 — Números 31–33
+- 10/02 — Números 34–36 e Deuteronômio 1–2
+- 11/02 — Deuteronômio 3–5
+- 12/02 — Deuteronômio 6–9
+- 13/02 — Deuteronômio 10–13
+- 14/02 — Deuteronômio 14–17
+- 15/02 — Deuteronômio 18–21
+- 16/02 — Deuteronômio 22–25
+- 17/02 — Deuteronômio 26–28
+- 18/02 — Deuteronômio 29–31
+- 19/02 — Deuteronômio 32–34
+- 20/02 — Josué 1–4
+- 21/02 — Josué 5–8
+- 22/02 — Josué 9–12
+## Conquista e reis (Juízes a 2 Samuel)
+- 23/02 — Josué 13–17
+- 24/02 — Josué 18–21
+- 25/02 — Josué 22–24 e Juízes 1–2
+- 26/02 — Juízes 3–5
+- 27/02 — Juízes 6–8
+- 28/02 — Juízes 9–11
+- 01/03 — Juízes 12–15
+- 02/03 — Juízes 16–18
+- 03/03 — Juízes 19–21
+- 04/03 — Rute 1–4
+- 05/03 — 1 Samuel 1–4
+- 06/03 — 1 Samuel 5–9
+- 07/03 — 1 Samuel 10–13
+- 08/03 — 1 Samuel 14–16
+- 09/03 — 1 Samuel 17–19
+- 10/03 — 1 Samuel 20–23
+- 11/03 — 1 Samuel 24–27
+- 12/03 — 1 Samuel 28–31
+- 13/03 — 2 Samuel 1–4
+- 14/03 — 2 Samuel 5–8
+- 15/03 — 2 Samuel 9–12
+- 16/03 — 2 Samuel 13–15
+- 17/03 — 2 Samuel 16–18
+- 18/03 — 2 Samuel 19–21
+- 19/03 — 2 Samuel 22–24
+- 20/03 — 1 Reis 1–3
+- 21/03 — 1 Reis 4–7
+- 22/03 — 1 Reis 8–10
+- 23/03 — 1 Reis 11–13
+- 24/03 — 1 Reis 14–17
+## O exílio e o regresso (1 Reis a Neemias)
+- 25/03 — 1 Reis 18–20
+- 26/03 — 1 Reis 21–22 e 2 Reis 1–2
+- 27/03 — 2 Reis 3–5
+- 28/03 — 2 Reis 6–9
+- 29/03 — 2 Reis 10–13
+- 30/03 — 2 Reis 14–17
+- 31/03 — 2 Reis 18–20
+- 01/04 — 2 Reis 21–23
+- 02/04 — 2 Reis 24–25 e 1 Crônicas 1–3
+- 03/04 — 1 Crônicas 4–7
+- 04/04 — 1 Crônicas 8–11
+- 05/04 — 1 Crônicas 12–15
+- 06/04 — 1 Crônicas 16–19
+- 07/04 — 1 Crônicas 20–23
+- 08/04 — 1 Crônicas 24–27
+- 09/04 — 1 Crônicas 28–29 e 2 Crônicas 1–3
+- 10/04 — 2 Crônicas 4–7
+- 11/04 — 2 Crônicas 8–11
+- 12/04 — 2 Crônicas 12–16
+- 13/04 — 2 Crônicas 17–21
+- 14/04 — 2 Crônicas 22–25
+- 15/04 — 2 Crônicas 26–29
+- 16/04 — 2 Crônicas 30–33
+- 17/04 — 2 Crônicas 34–36
+- 18/04 — Esdras 1–4
+- 19/04 — Esdras 5–7
+- 20/04 — Esdras 8–10
+- 21/04 — Neemias 1–4
+- 22/04 — Neemias 5–8
+- 23/04 — Neemias 9–11
+- 24/04 — Neemias 12–13 e Ester 1–2
+# 🎻 Fase 4: Poéticos e sabedoria
+## Louvor e sabedoria
+- 25/04 — Ester 3–7
+- 26/04 — Ester 8–10 e Jó 1–2
+- 27/04 — Jó 3–6
+- 28/04 — Jó 7–10
+- 29/04 — Jó 11–14
+- 30/04 — Jó 15–18
+- 01/05 — Jó 19–22
+- 02/05 — Jó 23–26
+- 03/05 — Jó 27–30
+- 04/05 — Jó 31–34
+- 05/05 — Jó 35–38
+- 06/05 — Jó 39–42
+- 07/05 — Salmos 1–10
+- 08/05 — Salmos 11–25
+- 09/05 — Salmos 26–41
+- 10/05 — Salmos 42–55
+- 11/05 — Salmos 56–72
+- 12/05 — Salmos 73–89
+- 13/05 — Salmos 90–106
+- 14/05 — Salmos 107–118
+- 15/05 — Salmos 119 (o maior capítulo!)
+- 16/05 — Salmos 120–150
+- 17/05 — Provérbios 1–4
+- 18/05 — Provérbios 5–9
+- 19/05 — Provérbios 10–15
+- 20/05 — Provérbios 16–21
+- 21/05 — Provérbios 22–26
+- 22/05 — Provérbios 27–31
+- 23/05 — Eclesiastes 1–6
+- 24/05 — Eclesiastes 7–12
+- 25/05 — Cantares 1–8
+# 📢 Fase 5: Profetas
+## Os grandes profetas
+- 26/05 — Isaías 1–5
+- 27/05 — Isaías 6–11
+- 28/05 — Isaías 12–17
+- 29/05 — Isaías 18–23
+- 30/05 — Isaías 24–29
+- 31/05 — Isaías 30–35
+- 01/06 — Isaías 36–41
+- 02/06 — Isaías 42–47
+- 03/06 — Isaías 48–53
+- 04/06 — Isaías 54–59
+- 05/06 — Isaías 60–63
+- 06/06 — Isaías 64–66
+## Jeremias, o profeta chorão
+- 07/06 — Jeremias 1–4
+- 08/06 — Jeremias 5–7
+- 09/06 — Jeremias 8–10
+- 10/06 — Jeremias 11–13
+- 11/06 — Jeremias 14–16
+- 12/06 — Jeremias 17–20
+- 13/06 — Jeremias 21–23
+- 14/06 — Jeremias 24–26
+- 15/06 — Jeremias 27–29
+- 16/06 — Jeremias 30–32
+- 17/06 — Jeremias 33–35
+- 18/06 — Jeremias 36–38
+- 19/06 — Jeremias 39–41
+- 20/06 — Jeremias 42–44
+- 21/06 — Jeremias 45–47
+- 22/06 — Jeremias 48–49
+- 23/06 — Jeremias 50–51
+- 24/06 — Jeremias 52
+## Visões e profecia
+- 25/06 — Lamentações 1–5
+- 26/06 — Ezequiel 1–4
+- 27/06 — Ezequiel 5–7
+- 28/06 — Ezequiel 8–10
+- 29/06 — Ezequiel 11–13
+- 30/06 — Ezequiel 14–16
+- 01/07 — Ezequiel 17–19
+- 02/07 — Ezequiel 20–22
+- 03/07 — Ezequiel 23–25
+- 04/07 — Ezequiel 26–28
+- 05/07 — Ezequiel 29–31
+- 06/07 — Ezequiel 32–34
+- 07/07 — Ezequiel 35–37
+- 08/07 — Ezequiel 38–40
+- 09/07 — Ezequiel 41–43
+- 10/07 — Ezequiel 44–46
+- 11/07 — Ezequiel 47–48
+- 12/07 — Daniel 1–2
+- 13/07 — Daniel 3–4
+- 14/07 — Daniel 5–6
+- 15/07 — Daniel 7–9
+- 16/07 — Daniel 10–12
+- 17/07 — Oseias 1–5
+- 18/07 — Oseias 6–10
+- 19/07 — Oseias 11–14
+- 20/07 — Joel 1–3
+- 21/07 — Amós 1–5
+- 22/07 — Amós 6–9
+- 23/07 — Obadias 1 e Jonas 1–4
+- 24/07 — Miqueias 1–7
+- 25/07 — Naum 1–3
+## O final do Antigo Testamento
+- 26/07 — Habacuque 1–3
+- 27/07 — Sofonias 1–3
+- 28/07 — Ageu 1–2
+- 29/07 — Zacarias 1–3
+- 30/07 — Zacarias 4–6
+- 31/07 — Zacarias 7–9
+- 01/08 — Zacarias 10–12
+- 02/08 — Zacarias 13–14
+- 03/08 — Malaquias 1–2
+- 04/08 — Malaquias 3–4 (fim do A.T.!)
+- 05/08 a 24/08: Zona de recuperação.
+# 🌒 Fase final: Apocalipse
+## Maranata!
+> 25/08 a 08/09: Descanso ou revisão.
+- 09/09 — Apocalipse 1–3
+- 10/09 — Apocalipse 4–6
+- 11/09 — Apocalipse 7–9
+- 12/09 — Apocalipse 10–12
+- 13/09 — Apocalipse 13–15
+- 14/09 — Apocalipse 16–18
+- 15/09 — Apocalipse 19–20
+- 16/09 — Apocalipse 21–22
+- 17/09 — Oração final e gratidão
+`;
+const START_YEAR = 2026; // o plano começa em 20/10/2026; jan–set caem no ano seguinte
+
+const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
+const sections = [], items = [], byId = {};
+let sec;
+for (const raw of PLAN.trim().split('\n')) {
+  const l = raw.trim();
+  if (l.startsWith('# ')) sections.push(sec = { title: l.slice(2), blocks: [] });
+  else if (l.startsWith('## ')) sec.blocks.push({ h: l.slice(3) });
+  else if (l.startsWith('> ')) sec.blocks.push({ note: l.slice(2) });
+  else if (l.startsWith('- ')) {
+    const t = l.slice(2), m = t.match(/^(\d\d)\/(\d\d) — (.*)$/);
+    const it = m
+      ? { id: m[1] + '/' + m[2], label: m[3], date: new Date(START_YEAR + (+m[2] < 10 ? 1 : 0), m[2] - 1, +m[1]) }
+      : { id: t, label: t, date: null };
+    it.phase = sec.title;
+    items.push(it); byId[it.id] = it; sec.blocks.push({ item: it });
+  }
+}
+
+const KEY = 'plano-leitura-v1';
+let S = null;
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch {}
+S = S && S.days ? S : { days: {}, timer: null };
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+const D = id => S.days[id] || {};
+
+const pad = n => String(n).padStart(2, '0');
+const hhmm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+const fmtMin = m => m >= 60 ? Math.floor(m / 60) + 'h ' + pad(m % 60) + 'min' : m + ' min';
+const $ = s => document.querySelector(s);
+const rowEl = id => document.querySelector(`[data-id="${CSS.escape(id)}"]`);
+
+function row(it) {
+  const d = D(it.id), t = it.date?.getTime(), now = TODAY.getTime();
+  const late = t < now && !d.done;
+  const cls = ['day', d.done && 'done', t === now && 'today'].filter(Boolean).join(' ');
+  const tag = t === now ? '<span class="tag">hoje</span>' : late ? '<span class="tag late">atrasado</span>' : '';
+  const meta = [d.start, d.min && d.min + ' min'].filter(Boolean).join('<br>');
+  const running = S.timer?.id === it.id;
+  return `<details class="${cls}" data-id="${it.id}"><summary>
+    <input type="checkbox" ${d.done ? 'checked' : ''} aria-label="Marcar ${it.label} como concluído">
+    ${it.date ? `<span class="date">${it.id}</span>` : ''}<span class="lbl">${it.label}${tag}</span><span class="meta">${meta}</span>
+  </summary><div class="edit">
+    <label>Começou às<input type="time" name="start" value="${d.start || ''}"></label>
+    <label>Tempo (minutos)<input type="number" name="min" min="0" inputmode="numeric" value="${d.min || ''}"></label>
+    <button class="primary" data-act="timer">${running ? '■ Parar e concluir' : '▶ Começar a ler agora'}</button>
+  </div></details>`;
+}
+
+function renderPlan() {
+  $('#plan').innerHTML = sections.map(s => `<h2>${s.title}</h2>` + s.blocks.map(b =>
+    b.h ? `<h3>${b.h}</h3>` : b.note ? `<p class="note">${b.note}</p>` : row(b.item)).join('')).join('');
+  renderTop();
+}
+function refresh(id) {
+  const el = rowEl(id), open = el.open;
+  el.outerHTML = row(byId[id]);
+  rowEl(id).open = open;
+  renderTop();
+}
+function renderTop() {
+  const done = items.filter(i => D(i.id).done).length, pct = Math.round(done / items.length * 100);
+  $('#prog').textContent = `${done} de ${items.length} concluídos · ${pct}%`;
+  $('#prog-bar').style.width = pct + '%';
+}
+
+function startTimer(id) {
+  if (S.timer && !confirm('Já tem uma leitura com o relógio ligado. Trocar para esta?')) return;
+  const old = S.timer?.id;
+  S.timer = { id, t: Date.now() };
+  save(); if (old) refresh(old); refresh(id); tick();
+}
+function stopTimer() {
+  const { id, t } = S.timer, d = S.days[id] ||= {};
+  d.start = hhmm(new Date(t));
+  d.min = Math.max(1, Math.round((Date.now() - t) / 60000));
+  d.done = true; d.doneAt = new Date().toISOString();
+  S.timer = null;
+  save(); refresh(id); tick();
+}
+function tick() {
+  const bar = $('#running');
+  bar.hidden = !S.timer;
+  if (!S.timer) return;
+  const s = Math.floor((Date.now() - S.timer.t) / 1000);
+  bar.querySelector('span').textContent = `Lendo ${byId[S.timer.id].label} · ${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+}
+setInterval(tick, 1000);
+$('#running button').onclick = stopTimer;
+
+$('#plan').addEventListener('change', e => {
+  const el = e.target, id = el.closest('[data-id]').dataset.id, d = S.days[id] ||= {};
+  if (el.type === 'checkbox') { d.done = el.checked; if (el.checked) d.doneAt = new Date().toISOString(); else delete d.doneAt; }
+  else if (el.name === 'start') d.start = el.value || undefined;
+  else if (el.name === 'min') d.min = Math.max(0, Math.round(+el.value)) || undefined;
+  save(); refresh(id);
+});
+$('#plan').addEventListener('click', e => {
+  const b = e.target.closest('[data-act=timer]'); if (!b) return;
+  const id = b.closest('[data-id]').dataset.id;
+  S.timer?.id === id ? stopTimer() : startTimer(id);
+});
+
+function goToday() {
+  const it = items.find(i => i.date && i.date >= TODAY) || items.at(-1);
+  const el = rowEl(it.id); el.open = true;
+  el.scrollIntoView({ block: 'center' });
+}
+$('#go-today').onclick = goToday;
+
+function bars(rows) {
+  const max = Math.max(1, ...rows.map(r => r.v));
+  return '<div class="rows">' + rows.map(r =>
+    `<div class="r" title="${r.k}: ${r.txt}"><span>${r.k}</span><div class="bar"><i style="width:${r.v / max * 100}%"></i></div><span>${r.txt}</span></div>`).join('') + '</div>';
+}
+function renderStats() {
+  const dated = items.filter(i => i.date), done = items.filter(i => D(i.id).done);
+  const timed = done.filter(i => D(i.id).min > 0);
+  const total = timed.reduce((a, i) => a + D(i.id).min, 0);
+  const starts = done.map(i => D(i.id).start).filter(Boolean).map(s => { const [h, m] = s.split(':'); return h * 60 + +m; });
+  const avgStart = starts.length ? Math.round(starts.reduce((a, b) => a + b) / starts.length) : null;
+  const past = dated.filter(i => i.date <= TODAY);
+  const late = past.filter(i => i.date < TODAY && !D(i.id).done).length;
+  // sequência = dias do plano seguidos concluídos; hoje ainda aberto não quebra a sequência
+  let cur = 0, p = [...past];
+  if (p.length && p.at(-1).date.getTime() === TODAY.getTime() && !D(p.at(-1).id).done) p.pop();
+  for (let i = p.length - 1; i >= 0 && D(p[i].id).done; i--) cur++;
+  let best = 0, run = 0;
+  for (const i of dated) { run = D(i.id).done ? run + 1 : 0; best = Math.max(best, run); }
+  const longest = timed.reduce((m, i) => Math.max(m, D(i.id).min), 0);
+
+  const tiles = [
+    [`${done.length}/${items.length}`, `concluídos · ${Math.round(done.length / items.length * 100)}%`],
+    [late, 'dias atrasados'],
+    [`${cur} 🔥`, 'sequência atual'],
+    [best, 'maior sequência'],
+    [total ? fmtMin(total) : '—', 'tempo total de leitura'],
+    [timed.length ? fmtMin(Math.round(total / timed.length)) : '—', 'média por leitura'],
+    [avgStart == null ? '—' : pad(Math.floor(avgStart / 60)) + ':' + pad(avgStart % 60), 'horário médio de início'],
+    [longest ? fmtMin(longest) : '—', 'leitura mais longa'],
+  ];
+  const periods = [['Madrugada (0h–5h)', 0, 5], ['Manhã (5h–12h)', 5, 12], ['Tarde (12h–18h)', 12, 18], ['Noite (18h–24h)', 18, 24]]
+    .map(([k, a, b]) => { const v = starts.filter(m => m >= a * 60 && m < b * 60).length; return { k, v, txt: v + (v === 1 ? ' vez' : ' vezes') }; });
+  const phases = sections.map(s => {
+    const its = s.blocks.filter(b => b.item).map(b => b.item), n = its.filter(i => D(i.id).done).length;
+    return { k: s.title.replace(/^\S+\s(Fase [^:]+: )?/, ''), v: n / its.length, txt: `${n}/${its.length}` };
+  });
+  const recent = timed.slice(-14).map(i => ({ k: (i.date ? i.id + ' ' : '') + i.label, v: D(i.id).min, txt: D(i.id).min + ' min' }));
+
+  $('#stats').innerHTML =
+    '<div class="tiles">' + tiles.map(([b, s]) => `<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('') + '</div>' +
+    '<h2>Progresso por fase</h2>' + bars(phases) +
+    '<h2>Tempo das últimas leituras</h2>' + (recent.length ? bars(recent) : '<p class="empty">Ainda sem tempo registrado. Use “Começar a ler agora” ou preencha o tempo no dia.</p>') +
+    '<h2>Quando você lê</h2>' + (starts.length ? bars(periods) : '<p class="empty">Ainda sem horário registrado.</p>');
+}
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x === b ? x.setAttribute('aria-current', 'page') : x.removeAttribute('aria-current'));
+  $('#tab-plano').hidden = b.dataset.tab !== 'plano';
+  $('#tab-metricas').hidden = b.dataset.tab !== 'metricas';
+  if (b.dataset.tab === 'metricas') renderStats();
+  scrollTo(0, 0);
+});
+
+$('#export').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }));
+  a.download = `plano-leitura-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+};
+$('#import').onclick = () => $('#import-file').click();
+$('#import-file').onchange = async e => {
+  try {
+    const data = JSON.parse(await e.target.files[0].text());
+    if (!data || typeof data.days !== 'object') throw 0;
+    if (!confirm('Isso troca os dados deste aparelho pelos do backup. Continuar?')) return;
+    S = data; save(); renderPlan(); renderStats(); tick();
+  } catch { alert('Arquivo de backup inválido.'); }
+  e.target.value = '';
+};
+
+let installEvt;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('#install').hidden = false; });
+$('#install').onclick = () => installEvt?.prompt();
+
+// app aberto de um dia para o outro: recarrega para "hoje" mudar
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && new Date().toDateString() !== TODAY.toDateString()) location.reload();
+});
+
+renderPlan(); tick(); goToday();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>

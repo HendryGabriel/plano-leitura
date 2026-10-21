@@ -60,6 +60,9 @@ nav button[aria-current=page]{color:var(--accent);font-weight:700}
 .rows .r>span:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
 .empty{color:var(--muted);font-size:.9rem}
 .backup{display:flex;gap:10px;flex-wrap:wrap}
+#install-box{margin:8px 0 14px}
+#install{width:100%;padding:12px}
+#install-help{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0 0}
 </style>
 </head>
 <body>
@@ -67,6 +70,10 @@ nav button[aria-current=page]{color:var(--accent);font-weight:700}
   <section id="tab-plano">
     <h1>Plano de Leitura e Devocional</h1>
     <p class="intro">Que este não seja um mapa de obrigações, mas um caminho de descobertas e de muitos momentos de intimidade com Jesus. Se Davi venceu Golias, você vence 3 capítulos! ❤️</p>
+    <div id="install-box">
+      <button id="install" class="primary">📲 Baixar o aplicativo</button>
+      <p id="install-help" hidden></p>
+    </div>
     <div class="top">
       <div class="top-row"><span id="prog"></span><button id="go-today">Ir para hoje</button></div>
       <div class="bar"><i id="prog-bar"></i></div>
@@ -81,7 +88,6 @@ nav button[aria-current=page]{color:var(--accent);font-weight:700}
     <div class="backup">
       <button id="export">Baixar backup</button>
       <button id="import">Restaurar backup</button>
-      <button id="install" class="primary" hidden>Instalar app</button>
       <input type="file" id="import-file" accept="application/json" hidden>
     </div>
   </section>
@@ -590,9 +596,21 @@ $('#import-file').onchange = async e => {
   e.target.value = '';
 };
 
+// Botão de instalar: Android/PC usam o pedido do navegador; iPhone não tem, então mostra o passo a passo
 let installEvt;
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('#install').hidden = false; });
-$('#install').onclick = () => installEvt?.prompt();
+const installed = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+if (installed()) $('#install-box').hidden = true;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+addEventListener('appinstalled', () => $('#install-box').hidden = true);
+$('#install').onclick = async () => {
+  if (installEvt) { installEvt.prompt(); await installEvt.userChoice; installEvt = null; return; }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const help = $('#install-help');
+  help.innerHTML = ios
+    ? 'No iPhone: abra este link no <b>Safari</b>, toque em <b>Compartilhar</b> (o quadrado com a seta ⬆) e depois em <b>Adicionar à Tela de Início</b>.'
+    : 'Abra o menu do navegador (<b>⋮</b>) e toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.';
+  help.hidden = !help.hidden;
+};
 
 // app aberto de um dia para o outro: recarrega para "hoje" mudar
 document.addEventListener('visibilitychange', () => {

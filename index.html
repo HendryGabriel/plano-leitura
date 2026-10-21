@@ -61,6 +61,8 @@ nav button[aria-current=page]{color:var(--accent);font-weight:700}
 .empty{color:var(--muted);font-size:.9rem}
 .backup{display:flex;gap:10px;flex-wrap:wrap}
 #install-box{margin:8px 0 14px}
+.start{display:grid;gap:6px;font-size:.85rem;color:var(--muted);margin:0 0 14px}
+.start input{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
 #install{width:100%;padding:12px}
 #install-help{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0 0}
 </style>
@@ -74,6 +76,7 @@ nav button[aria-current=page]{color:var(--accent);font-weight:700}
       <button id="install" class="primary">📲 Baixar o aplicativo</button>
       <p id="install-help" hidden></p>
     </div>
+    <label class="start">📅 Dia em que comecei (ou vou começar) o plano<input type="date" id="start"></label>
     <div class="top">
       <div class="top-row"><span id="prog"></span><button id="go-today">Ir para hoje</button></div>
       <div class="bar"><i id="prog-bar"></i></div>
@@ -415,6 +418,8 @@ const PLAN = `
 - 17/09 — Oração final e gratidão
 `;
 const START_YEAR = 2026; // o plano começa em 20/10/2026; jan–set caem no ano seguinte
+const baseDate = (d, m) => new Date(START_YEAR + (m < 10 ? 1 : 0), m - 1, d);
+const PLAN_START = baseDate(20, 10);
 
 const TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
 const sections = [], items = [], byId = {};
@@ -427,8 +432,8 @@ for (const raw of PLAN.trim().split('\n')) {
   else if (l.startsWith('- ')) {
     const t = l.slice(2), m = t.match(/^(\d\d)\/(\d\d) — (.*)$/);
     const it = m
-      ? { id: m[1] + '/' + m[2], label: m[3], date: new Date(START_YEAR + (+m[2] < 10 ? 1 : 0), m[2] - 1, +m[1]) }
-      : { id: t, label: t, date: null };
+      ? { id: m[1] + '/' + m[2], label: m[3], base: baseDate(+m[1], +m[2]) }
+      : { id: t, label: t, base: null };
     it.phase = sec.title;
     items.push(it); byId[it.id] = it; sec.blocks.push({ item: it });
   }
@@ -446,6 +451,19 @@ const hhmm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
 const fmtMin = m => m >= 60 ? Math.floor(m / 60) + 'h ' + pad(m % 60) + 'min' : m + ' min';
 const $ = s => document.querySelector(s);
 const rowEl = id => document.querySelector(`[data-id="${CSS.escape(id)}"]`);
+const fmt = d => pad(d.getDate()) + '/' + pad(d.getMonth() + 1);
+const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+// Data de início escolhida pela pessoa: o plano inteiro anda junto (os dados continuam presos à leitura, não à data)
+let OFF = 0;
+const shift = d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + OFF);
+const shiftText = t => t.replace(/(\d\d)\/(\d\d)/g, (_, d, m) => fmt(shift(baseDate(+d, +m))));
+function applyStart() {
+  const [y, m, d] = (S.start || iso(PLAN_START)).split('-').map(Number);
+  OFF = Math.round((new Date(y, m - 1, d) - PLAN_START) / 864e5);
+  for (const it of items) it.date = it.base && shift(it.base);
+  $('#start').value = iso(shift(PLAN_START));
+}
 
 function row(it) {
   const d = D(it.id), t = it.date?.getTime(), now = TODAY.getTime();
@@ -456,7 +474,7 @@ function row(it) {
   const running = S.timer?.id === it.id;
   return `<details class="${cls}" data-id="${it.id}"><summary>
     <input type="checkbox" ${d.done ? 'checked' : ''} aria-label="Marcar ${it.label} como concluído">
-    ${it.date ? `<span class="date">${it.id}</span>` : ''}<span class="lbl">${it.label}${tag}</span><span class="meta">${meta}</span>
+    ${it.date ? `<span class="date">${fmt(it.date)}</span>` : ''}<span class="lbl">${it.date ? it.label : shiftText(it.label)}${tag}</span><span class="meta">${meta}</span>
   </summary><div class="edit">
     <label>Começou às<input type="time" name="start" value="${d.start || ''}"></label>
     <label>Tempo (minutos)<input type="number" name="min" min="0" inputmode="numeric" value="${d.min || ''}"></label>
@@ -466,7 +484,7 @@ function row(it) {
 
 function renderPlan() {
   $('#plan').innerHTML = sections.map(s => `<h2>${s.title}</h2>` + s.blocks.map(b =>
-    b.h ? `<h3>${b.h}</h3>` : b.note ? `<p class="note">${b.note}</p>` : row(b.item)).join('')).join('');
+    b.h ? `<h3>${b.h}</h3>` : b.note ? `<p class="note">${shiftText(b.note)}</p>` : row(b.item)).join('')).join('');
   renderTop();
 }
 function refresh(id) {
@@ -562,7 +580,7 @@ function renderStats() {
     const its = s.blocks.filter(b => b.item).map(b => b.item), n = its.filter(i => D(i.id).done).length;
     return { k: s.title.replace(/^\S+\s(Fase [^:]+: )?/, ''), v: n / its.length, txt: `${n}/${its.length}` };
   });
-  const recent = timed.slice(-14).map(i => ({ k: (i.date ? i.id + ' ' : '') + i.label, v: D(i.id).min, txt: D(i.id).min + ' min' }));
+  const recent = timed.slice(-14).map(i => ({ k: (i.date ? fmt(i.date) + ' ' : '') + i.label, v: D(i.id).min, txt: D(i.id).min + ' min' }));
 
   $('#stats').innerHTML =
     '<div class="tiles">' + tiles.map(([b, s]) => `<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('') + '</div>' +
@@ -591,7 +609,7 @@ $('#import-file').onchange = async e => {
     const data = JSON.parse(await e.target.files[0].text());
     if (!data || typeof data.days !== 'object') throw 0;
     if (!confirm('Isso troca os dados deste aparelho pelos do backup. Continuar?')) return;
-    S = data; save(); renderPlan(); renderStats(); tick();
+    S = data; save(); applyStart(); renderPlan(); renderStats(); tick();
   } catch { alert('Arquivo de backup inválido.'); }
   e.target.value = '';
 };
@@ -617,7 +635,13 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && new Date().toDateString() !== TODAY.toDateString()) location.reload();
 });
 
-renderPlan(); tick(); goToday();
+$('#start').onchange = e => {
+  if (!e.target.value) return applyStart();
+  S.start = e.target.value; save();
+  applyStart(); renderPlan(); goToday();
+};
+
+applyStart(); renderPlan(); tick(); goToday();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
